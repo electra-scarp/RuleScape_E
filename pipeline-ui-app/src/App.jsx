@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
-import { BridgeStage } from "./stages/BridgeStage";
+import { useState } from "react";
+import rulescapeLogoFull from "./assets/rulescape_logo.png";
+import rulescapeLogoCrop from "./assets/rulescape_logo_crop.png";
+import { BridgeStage } from "./stages/KnoxStage";
 import { CelloStage } from "./stages/CelloStage";
 import { MlStage } from "./stages/MlStage";
-import { ReportStage } from "./stages/ReportStage";
+import { ReportStage } from "./stages/ResultStage";
 
 const steps = [
   {
@@ -42,128 +44,206 @@ const stageComponents = {
   report: ReportStage,
 };
 
-const pipelineSummary = [
-  { label: "Top N", value: "5" },
-  { label: "Iterations", value: "25" },
-  { label: "Current UCF", value: "v6" },
-  { label: "Latest best score", value: "1.5052" },
+const runParameterFields = [
+  {
+    id: "topN",
+    label: "Top N",
+    type: "number",
+    value: "5",
+    min: "1",
+    step: "1",
+  },
+  {
+    id: "iterations",
+    label: "Iterations",
+    type: "number",
+    value: "25",
+    min: "1",
+    step: "1",
+  },
+  {
+    id: "search",
+    label: "Search",
+    type: "select",
+    value: "Exhaustive",
+    options: ["Exhaustive", "Annealing"],
+    fullWidth: true,
+  },
+  {
+    id: "runLabel",
+    label: "Run label",
+    type: "text",
+    value: "classic_single_input_run",
+    fullWidth: true,
+  },
 ];
+
+const initialRunParams = Object.fromEntries(
+  runParameterFields.map((item) => [item.id, item.value])
+);
 
 export default function App() {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [runParams, setRunParams] = useState(initialRunParams);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(true);
   const currentStep = steps[activeIndex];
   const ActiveStage = stageComponents[currentStep.id];
+  const logoSrc = sidebarCollapsed ? rulescapeLogoCrop : rulescapeLogoFull;
+  const progressPercent = ((activeIndex + 1) / steps.length) * 100;
 
-  const progressLabel = useMemo(
-    () => `${activeIndex + 1} / ${steps.length}`,
-    [activeIndex]
-  );
+  const handleRunParamChange = (id, nextValue) => {
+    setRunParams((current) => ({ ...current, [id]: nextValue }));
+  };
 
   const goPrevious = () => setActiveIndex((value) => Math.max(0, value - 1));
   const goNext = () =>
     setActiveIndex((value) => Math.min(steps.length - 1, value + 1));
 
   return (
-    <div className="app-shell">
-      <header className="hero">
-        <div>
-          <span className="eyebrow">RuleScape</span>
-          <h1>Pipeline</h1>
-          <p className="muted hero-copy">
-            This version is intentionally linear. The interface is designed to
-            make the order of operations obvious: define the Cello run, inspect
-            the Knox handoff, configure ML, then review the results.
-          </p>
+    <div className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
+      <aside className={`sidebar card${sidebarCollapsed ? " collapsed" : ""}`}>
+        <div className="sidebar-header">
+          <button
+            className="sidebar-toggle"
+            type="button"
+            aria-label={sidebarCollapsed ? "Expand pipeline steps" : "Collapse pipeline steps"}
+            onClick={() => setSidebarCollapsed((value) => !value)}
+          >
+            <i className="fa-solid fa-bars" aria-hidden="true" />
+          </button>
+          <div className="sidebar-brand">
+            <img className="hero-logo" src={logoSrc} alt="RuleScape logo" />
+          </div>
         </div>
 
-        <div className="hero-status">
-          <span className="eyebrow soft">Current step</span>
-          <strong>{currentStep.number}</strong>
-          <span>{currentStep.title}</span>
-        </div>
-      </header>
+        <section className="sidebar-section">
+          <span className="sidebar-label">Pipeline Steps</span>
+          <div className="side-step-list">
+            {steps.map((step, index) => {
+              const state =
+                index === activeIndex
+                  ? "active"
+                  : index < activeIndex
+                    ? "complete"
+                    : "upcoming";
 
-      <section className="stepper" aria-label="Pipeline steps">
-        {steps.map((step, index) => {
-          const state =
-            index === activeIndex
-              ? "active"
-              : index < activeIndex
-                ? "complete"
-                : "upcoming";
+              return (
+                <button
+                  key={step.id}
+                  type="button"
+                  className={`side-step ${state}`}
+                  onClick={() => setActiveIndex(index)}
+                  title={step.title}
+                  aria-label={step.title}
+                >
+                  <span className="step-number">{step.number}</span>
+                  <div className="side-step-copy">
+                    <strong>{step.title}</strong>
+                    <p>{step.subtitle}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      </aside>
 
-          return (
-            <button
-              key={step.id}
-              type="button"
-              className={`step-card ${state}`}
-              onClick={() => setActiveIndex(index)}
-            >
-              <span className="step-number">{step.number}</span>
-              <div>
-                <strong>{step.title}</strong>
-                <p>{step.subtitle}</p>
-              </div>
-            </button>
-          );
-        })}
-      </section>
-
-      <div className="workspace">
-        <main className="stage-view">
-          <section className="stage-header card">
-            <div>
-              <span className="eyebrow">{progressLabel}</span>
-              <h2>{currentStep.title}</h2>
-              <p className="muted">{currentStep.summary}</p>
-            </div>
-
-            <div className="stage-controls">
+      <main className="workspace">
+        <header className="hero card">
+          <div className="hero-topline">
+            <span className="progress-kicker">Step {activeIndex + 1} of {steps.length}</span>
+            <div className="hero-nav-inline">
               <button
-                className="ghost-button"
+                className="ghost-button nav-button"
                 type="button"
                 onClick={goPrevious}
                 disabled={activeIndex === 0}
+                aria-label="Previous step"
               >
-                Previous
+                <i className="fa-solid fa-angle-left" aria-hidden="true" />
               </button>
               <button
-                className="primary-button"
+                className="primary-button nav-button"
                 type="button"
                 onClick={goNext}
                 disabled={activeIndex === steps.length - 1}
+                aria-label="Next step"
               >
-                Next step
+                <i className="fa-solid fa-angle-right" aria-hidden="true" />
               </button>
             </div>
+          </div>
+
+          <h1>{currentStep.title}</h1>
+          <p className="muted hero-copy">{currentStep.summary}</p>
+          <div
+            className="progress-track"
+            role="progressbar"
+            aria-valuemin={1}
+            aria-valuemax={steps.length}
+            aria-valuenow={activeIndex + 1}
+            aria-label={`Step ${activeIndex + 1} of ${steps.length}`}
+          >
+            <span className="progress-fill" style={{ width: `${progressPercent}%` }} />
+          </div>
+        </header>
+
+        <div className="content-grid">
+          <section className="stage-view">
+            <ActiveStage
+              runParams={runParams}
+              runParameterFields={runParameterFields}
+              onRunParamChange={handleRunParamChange}
+            />
           </section>
 
-          <ActiveStage />
-        </main>
-
-        <aside className="context-column">
-          <section className="card context-card">
-            <span className="eyebrow soft">Pipeline summary</span>
-            {pipelineSummary.map((item) => (
-              <div className="summary-row" key={item.label}>
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
+          <aside className="preview-rail">
+            <section className="card preview-card">
+              <span className="sidebar-label">Run parameters</span>
+              <div className="config-grid compact-config-grid">
+                {runParameterFields.map((field) => (
+                  <ConfigField
+                    key={field.id}
+                    field={field}
+                    value={runParams[field.id]}
+                    onChange={handleRunParamChange}
+                  />
+                ))}
               </div>
-            ))}
-          </section>
-
-          <section className="card context-card">
-            <span className="eyebrow soft">Launch action</span>
-            <button className="primary-button wide" type="button">
-              Launch pipeline
-            </button>
-            <p className="muted compact">
-              Keep one primary launch action visible throughout the pipeline
-              instead of repeating it inside each stage.
-            </p>
-          </section>
-        </aside>
-      </div>
+            </section>
+          </aside>
+        </div>
+      </main>
     </div>
+  );
+}
+
+function ConfigField({ field, value, onChange }) {
+  return (
+    <label className={`config-item${field.fullWidth ? " full-width" : ""}`}>
+      <span>{field.label}</span>
+      {field.type === "select" ? (
+        <select
+          className="config-control"
+          value={value}
+          onChange={(event) => onChange(field.id, event.target.value)}
+        >
+          {field.options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          className="config-control"
+          type={field.type}
+          value={value}
+          min={field.min}
+          step={field.step}
+          onChange={(event) => onChange(field.id, event.target.value)}
+        />
+      )}
+    </label>
   );
 }
