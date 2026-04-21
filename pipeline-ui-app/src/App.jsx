@@ -534,7 +534,7 @@ export default function App() {
                   max="90"
                   value={mlParams.trainSplit}
                   onChange={(e) =>
-                    onMlParamChange("trainSplit", Number(e.target.value))
+                    handleMlParamChange("trainSplit", Number(e.target.value))
                   }
                 />
               </label>
@@ -545,7 +545,7 @@ export default function App() {
                   type="number"
                   value={mlParams.topNFeatures}
                   onChange={(e) =>
-                    onMlParamChange("topNFeatures", Number(e.target.value))
+                    handleMlParamChange("topNFeatures", Number(e.target.value))
                   }
                 />
               </label>
@@ -557,12 +557,12 @@ export default function App() {
                   step="0.01"
                   value={mlParams.threshold}
                   onChange={(e) =>
-                    onMlParamChange("threshold", Number(e.target.value))
+                    handleMlParamChange("threshold", Number(e.target.value))
                   }
                 />
               </label>
       
-              <button className="primary-button wide" onClick={onRunML}>
+              <button className="primary-button wide" onClick={handleRunML}>
                 {mlRunState?.phase === "running"
                   ? "Running ML..."
                   : "Run ML"}
