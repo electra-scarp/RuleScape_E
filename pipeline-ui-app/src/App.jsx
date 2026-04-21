@@ -297,7 +297,7 @@ export default function App() {
     }
   };
 
-  const handleRunML = async () => {
+  const handleRunML = async (mlStagePayload) => {
   // --- VALIDATION ---
   if (!mlParams.trainSplit || !mlParams.topNFeatures) {
     setMlRunState({
