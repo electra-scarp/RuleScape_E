@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
 
-@author: juliettejacques
-"""
-
+import argparse
 from classic_loader import ClassicLoader
 from single_input_ucf_writer import build_single_input_ucf, write_ucf_json
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--top_n", type=int, default=25)
+    parser.add_argument("--version_name", type=str, default=None)
+    args = parser.parse_args()
+
     loader = ClassicLoader(".")
     df = loader.load_single_input_for_ucf()
 
@@ -23,15 +25,14 @@ def main():
     print("\n[INFO] Top 10 switch-like designs:")
     print(df.sort_values("switch_score", ascending=False)[cols_to_show].head(10))
 
-    top_n = 25
-    version_name = "CLASSIC_single_input_v6" # functionally diverse and k values not clones
+    top_n = args.top_n
+    version_name = args.version_name or f"CLASSIC_single_input_top_{top_n}"
     outpath = f"{version_name}.UCF.json"
 
     ucf = build_single_input_ucf(df, top_n=top_n, version_name=version_name)
     write_ucf_json(ucf, outpath)
 
     print(f"\n[INFO] Wrote UCF to: {outpath}")
-    
 
 
 if __name__ == "__main__":

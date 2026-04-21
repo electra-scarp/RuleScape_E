@@ -9,6 +9,7 @@ Created on Fri Apr 10 12:26:02 2026
 import json
 import pandas as pd
 
+
 def make_header(version_name="CLASSIC_single_input"):
     return {
         "collection": "header",
@@ -38,10 +39,24 @@ def make_logic_constraints():
     }
 
 
-def make_structure_entry(gate_idx: int):
+def make_gate_name(row: pd.Series, gate_idx: int) -> str:
+    """
+    Stable gate naming.
+    If a design_id column exists, use it.
+    Otherwise fall back to CLASSIC_SI_000001 style naming.
+    """
+    if "design_id" in row.index and pd.notna(row["design_id"]):
+        return str(row["design_id"])
+    return f"CLASSIC_SI_{gate_idx:06d}"
+
+
+def make_structure_entry(gate_name: str):
+    """
+    One structure per gate so Cello gate names and structure names stay aligned.
+    """
     return {
         "collection": "structures",
-        "name": f"Switch_{gate_idx:03d}_structure",
+        "name": f"{gate_name}_structure",
         "inputs": [
             {
                 "name": "in1",
@@ -53,7 +68,7 @@ def make_structure_entry(gate_idx: int):
         ],
         "devices": [
             {
-                "name": "synTF_unit",
+                "name": f"{gate_name}_synTF_unit",
                 "components": [
                     "#in1",
                     "TA_SLOT",
@@ -63,7 +78,7 @@ def make_structure_entry(gate_idx: int):
                 ]
             },
             {
-                "name": "reporter_unit",
+                "name": f"{gate_name}_reporter_unit",
                 "components": [
                     "BM_SLOT",
                     "CORE_PROMOTER_SLOT",
@@ -72,7 +87,7 @@ def make_structure_entry(gate_idx: int):
                 ]
             },
             {
-                "name": "layout_context",
+                "name": f"{gate_name}_layout_context",
                 "components": [
                     "SPACER1_SLOT",
                     "SPACER2_SLOT",
@@ -88,7 +103,7 @@ def make_parts_from_designs(df: pd.DataFrame):
     design_cols = [c for c in df.columns if c.startswith("design_col_")]
 
     for col in design_cols:
-        vals = sorted(df[col].dropna().unique())
+        vals = sorted(pd.Series(df[col]).dropna().unique())
         for v in vals:
             parts.append({
                 "collection": "parts",
@@ -97,19 +112,14 @@ def make_parts_from_designs(df: pd.DataFrame):
                 "dnasequence": ""
             })
 
-    # placeholder shared parts so structure names resolve
     shared_parts = [
         {"collection": "parts", "name": "TA_SLOT", "type": "cds", "dnasequence": ""},
         {"collection": "parts", "name": "IDP_SLOT", "type": "cds", "dnasequence": ""},
         {"collection": "parts", "name": "ZF_SLOT", "type": "cds", "dnasequence": ""},
         {"collection": "parts", "name": "SYN_TERMINATOR_SLOT", "type": "terminator", "dnasequence": ""},
-
         {"collection": "parts", "name": "BM_SLOT", "type": "promoter", "dnasequence": ""},
         {"collection": "parts", "name": "CORE_PROMOTER_SLOT", "type": "promoter", "dnasequence": ""},
-
-        # data-only generic input promoter
         {"collection": "parts", "name": "CLASSIC_input_promoter", "type": "promoter", "dnasequence": ""},
-
         {"collection": "parts", "name": "REPORTER_GENE", "type": "cds", "dnasequence": ""},
         {"collection": "parts", "name": "REPORTER_TERMINATOR", "type": "terminator", "dnasequence": ""},
         {"collection": "parts", "name": "SPACER1_SLOT", "type": "scar", "dnasequence": ""},
@@ -118,32 +128,35 @@ def make_parts_from_designs(df: pd.DataFrame):
     ]
     parts.extend(shared_parts)
 
-    return parts
+    # optional de-duplication by part name
+    deduped = []
+    seen = set()
+    for part in parts:
+        key = part["name"]
+        if key not in seen:
+            deduped.append(part)
+            seen.add(key)
+
+    return deduped
 
 
-def make_model_entry(row: pd.Series, gate_idx: int):
-    model_name = f"Switch_{gate_idx:03d}_model"
+def make_model_entry(row: pd.Series, gate_name: str):
+    model_name = f"{gate_name}_model"
 
-    # approximate Hill-like parameters from measured switch behavior
     ymin = max(float(row["basal_expr"]), 1e-6)
     ymax = max(float(row["induced_expr"]), ymin + 1e-6)
-    # map fold change into a more realistic Hill coefficient range
     fc = max(float(row["fold_change"]), 1.0)
-    
-    # fc (~4-5) -> weak switches
-    #fc ~15-20 -> moderate
-    #fc ~40-100 -> strong
-    
-    # scale K based on fold-change regime (for scoring diversity)
+
+    # deterministic heuristic parameters
     if fc < 5:
-        K = ymin + 0.25 * (ymax - ymin) 
-    elif fc < 20:       
-        K = ymin + 0.40 * (ymax - ymin) 
+        K = ymin + 0.25 * (ymax - ymin)
+    elif fc < 20:
+        K = ymin + 0.40 * (ymax - ymin)
     elif fc < 100:
         K = ymin + 0.55 * (ymax - ymin)
     else:
         K = ymin + 0.70 * (ymax - ymin)
-    
+
     if fc < 2:
         n = 1.2
     elif fc < 5:
@@ -182,8 +195,7 @@ def make_model_entry(row: pd.Series, gate_idx: int):
     }
 
 
-def make_gate_entry(gate_idx: int):
-    gate_name = f"Switch_{gate_idx:03d}"
+def make_gate_entry(gate_name: str):
     return {
         "collection": "gates",
         "name": gate_name,
@@ -212,83 +224,34 @@ def make_functions():
     ]
 
 
-def enforce_spacing(df, min_fc_diff=2.0, min_basal_diff=2000, min_induced_diff=5000):
-    selected = []
+def build_single_input_ucf(
+    df: pd.DataFrame,
+    top_n: int = 25,
+    version_name: str = "CLASSIC_single_input"
+    ):
+    """
+    Export the top-N rows of the dataframe by switch_score.
 
-    for _, row in df.iterrows():
-        if not selected:
-            selected.append(row)
-            continue
+    This version does NOT do phenotype spacing or diversity filtering.
+    It simply:
+      1) sorts by switch_score descending
+      2) keeps the top_n rows
+      3) writes those rows into the UCF
+    """
+    if df.empty:
+        raise ValueError("Input dataframe is empty; cannot build UCF.")
 
-        keep = True
-        for s in selected:
-            fc_close = abs(row["fold_change"] - s["fold_change"]) < min_fc_diff
-            basal_close = abs(row["basal_expr"] - s["basal_expr"]) < min_basal_diff
-            induced_close = abs(row["induced_expr"] - s["induced_expr"]) < min_induced_diff
-            
-            # midpoint similarity
-            mid_row = 0.5 * (row["basal_expr"] + row["induced_expr"])
-            mid_s   = 0.5 * (s["basal_expr"] + s["induced_expr"])
-            mid_close = abs(mid_row - mid_s) < 10000
+    required_cols = {"basal_expr", "induced_expr", "fold_change", "switch_score"}
+    missing = required_cols - set(df.columns)
+    if missing:
+        raise ValueError(f"Missing required columns for UCF generation: {missing}")
 
-            # reject if too similar in all three phenotype dimensions
-            if fc_close and basal_close and induced_close:
-                keep = False
-                break
-
-        if keep:
-            selected.append(row)
-
-    return pd.DataFrame(selected)
-
-def build_single_input_ucf(df: pd.DataFrame, top_n: int = 25, version_name="CLASSIC_single_input"):
-    df = df.copy().sort_values("switch_score", ascending=False)
-
-    # 1) remove exact duplicate designs
-    design_cols = [c for c in df.columns if c.startswith("design_col_")]
-    df = df.drop_duplicates(subset=design_cols)
-
-    # 2) remove duplicate / near-duplicate phenotypes
-    df["phenotype_key"] = list(zip(
-        df["basal_expr"].round(-2),
-        df["induced_expr"].round(-3),
-        df["fold_change"].round(1)
-    ))
-    df = df.drop_duplicates(subset="phenotype_key")
-
-    # 3) assign fold-change bins for diversity
-    df["fc_bin"] = pd.cut(
-        df["fold_change"],
-        bins=[0, 5, 20, 100, 1000, float("inf")],
-        labels=["very_low", "low", "medium", "high", "extreme"]
+    df = (
+        df.copy()
+        .sort_values("switch_score", ascending=False)
+        .head(top_n)
+        .reset_index(drop=True)
     )
-
-    # 4) take only a small candidate pool from each bin
-    selected = []
-    for bin_name in ["very_low", "low", "medium", "high", "extreme"]:
-        subset = df[df["fc_bin"] == bin_name].sort_values("switch_score", ascending=False)
-        if not subset.empty:
-            selected.append(subset.head(15))
-
-    if selected:
-        candidate_df = pd.concat(selected)
-    else:
-        candidate_df = df.head(0).copy()
-
-    # 5) fill remaining candidate slots if needed
-    if len(candidate_df) < 50:
-        remaining = df.loc[~df.index.isin(candidate_df.index)]
-        extra = remaining.sort_values("switch_score", ascending=False).head(50 - len(candidate_df))
-        candidate_df = pd.concat([candidate_df, extra])
-
-    candidate_df = candidate_df.drop_duplicates(subset="phenotype_key")
-
-    # 6)apply spacing on the much smaller candidate set
-    candidate_df = enforce_spacing(candidate_df)
-
-    # 7) final top_n
-    df = candidate_df.head(top_n).reset_index(drop=True)
-    df = df.drop(columns=["phenotype_key", "fc_bin"], errors="ignore")
 
     ucf = []
     ucf.append(make_header(version_name))
@@ -296,12 +259,13 @@ def build_single_input_ucf(df: pd.DataFrame, top_n: int = 25, version_name="CLAS
     ucf.append(make_logic_constraints())
     ucf.extend(make_functions())
     ucf.extend(make_parts_from_designs(df))
-   
+
     for i, row in df.iterrows():
         gate_idx = i + 1
-        ucf.append(make_structure_entry(gate_idx))
-        ucf.append(make_gate_entry(gate_idx))
-        ucf.append(make_model_entry(row, gate_idx))
+        gate_name = make_gate_name(row, gate_idx)
+        ucf.append(make_structure_entry(gate_name))
+        ucf.append(make_gate_entry(gate_name))
+        ucf.append(make_model_entry(row, gate_name))
 
     return ucf
 

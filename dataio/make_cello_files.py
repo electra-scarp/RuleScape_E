@@ -259,10 +259,10 @@ def main():
     print(f"[INFO] Wrote: {input_path}")
     print(f"[INFO] Wrote: {output_path}")
     print(f"[INFO] Wrote: {verilog_path}")
+    print("[INFO] These input/output files are shared across UCF subset modes.")
     print("[INFO] Dataset-derived sensor parameters:")
     print(f"       ymin = {sensor['ymin']:.6f}")
     print(f"       ymax = {sensor['ymax']:.6f}")
-
 
 if __name__ == "__main__":
     main()

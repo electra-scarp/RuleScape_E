@@ -91,13 +91,12 @@ class ClassicLoader:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce")
     
-        # simple switch score
-        # reward induced + fold change, penalize basal
+        # GIVE REWARD TO DESIGNS WITH BOTH HIGH INDUCTION AND HIGH FOLD CHANGE
+        #separate weak and strong swtiches
+        
         df["switch_score"] = (
-            df["induced_expr"] +
-            df["fold_change"] -
-            df["basal_expr"]
-        )
+        df["induced_expr"] - df["basal_expr"]
+        ) * df["fold_change"]
     
         df = df.replace([np.inf, -np.inf], np.nan)
         df = df.dropna(subset=["basal_expr", "induced_expr", "fold_change", "switch_score"]).reset_index(drop=True)
