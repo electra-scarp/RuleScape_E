@@ -339,6 +339,10 @@ export default function App() {
     eval_name: selectedKnoxContext.evalName,
     group_id: selectedKnoxContext.groupId,
     rule_group_id: selectedKnoxContext.ruleGroupId,
+
+    // <-- coming from MlStage
+    models: mlStagePayload?.models || [],
+
   };
 
   // --- PROGRESS TRANSITION ---
