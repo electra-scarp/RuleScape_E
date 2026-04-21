@@ -528,7 +528,8 @@ export default function App() {
                 <span className="sidebar-label">ML Configuration</span>
                 
                 {/* Train / Test Split */}
-                <div className="ml-param-row">
+                <div className="ml-param-block">
+                  <div className="ml-param-header">
                   <span className="ml-param-label">Train/Test Split</span>
                   
                 <input
@@ -548,7 +549,8 @@ export default function App() {
                   
 
                 {/* Top N Features */}
-                <div className="ml-param-row">
+                <div className="ml-param-block">
+                  <div className="ml-param-header">
                   <span className="ml-param-label">Top N Features</span>
                   
                 <input
@@ -566,7 +568,8 @@ export default function App() {
 
 
                 {/* Threshold */}
-                <div className="ml-param-row">
+                <div className="ml-param-block">
+                  <div className="ml-param-header">
                   <span className="ml-param-label">Threshold</span>
                   
                 <input
