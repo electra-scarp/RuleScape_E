@@ -885,6 +885,7 @@ select.config-control {
 }
 
 .choice-card.active {
+  border: 2px;
   border-color: rgba(134, 242, 255, 0.22);
   box-shadow: inset 0 0 0 3px rgba(134, 242, 255, 0.05);
 }
