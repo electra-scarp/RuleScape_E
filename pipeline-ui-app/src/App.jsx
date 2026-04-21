@@ -188,6 +188,12 @@ export default function App() {
     result: null,
     error: "",
   });
+  const [mlParams, setMlParams] = useState({
+    trainSplit: 70,
+    topNFeatures: 10,
+    threshold: 0.5,
+  });
+
 
   const currentStep = steps[activeIndex];
   const ActiveStage = stageComponents[currentStep.id];
@@ -208,6 +214,10 @@ export default function App() {
 
   const handleCelloInputChange = (id, nextValue) => {
     setCelloInputs((current) => ({ ...current, [id]: nextValue }));
+  };
+
+  const handleMlParamChange = (id, value) => {
+    setMlParams((prev) => ({ ...prev, [id]: value }));
   };
 
   const handleImportedNameChange = (id, nextValue) => {
@@ -276,6 +286,76 @@ export default function App() {
       });
     }
   };
+
+  const handleRunML = async () => {
+  // --- VALIDATION ---
+  if (!mlParams.trainSplit || !mlParams.topNFeatures) {
+    setMlRunState({
+      phase: "error",
+      result: null,
+      error: "Missing required ML parameters.",
+    });
+    return;
+  }
+
+  // --- INITIALIZE STATE ---
+  setMlRunState({
+    phase: "initializing",
+    result: null,
+    error: "",
+  });
+
+  // --- BUILD PAYLOAD ---
+  const payload = {
+    train_split: mlParams.trainSplit,
+    top_n_features: mlParams.topNFeatures,
+    threshold: mlParams.threshold,
+  };
+
+  // --- PROGRESS TRANSITION ---
+  const runningTimer = window.setTimeout(() => {
+    setMlRunState((current) =>
+      current.phase === "initializing"
+        ? { ...current, phase: "running" }
+        : current
+    );
+  }, 250);
+
+  try {
+    // --- API REQUEST ---
+    const response = await fetch("http://127.0.0.1:8000/run-ml", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    window.clearTimeout(runningTimer);
+
+    // --- ERROR CHECK ---
+    if (!response.ok) {
+      throw new Error(data.error || "ML run failed.");
+    }
+
+    // --- SUCCESS ---
+    setMlRunState({
+      phase: "completed",
+      result: data,
+      error: "",
+    });
+  } catch (error) {
+    window.clearTimeout(runningTimer);
+
+    // --- FAILURE ---
+    setMlRunState({
+      phase: "error",
+      result: null,
+      error: error.message || "ML execution failed.",
+    });
+  }
+};
 
   return (
     <div className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
@@ -378,6 +458,12 @@ export default function App() {
                 viewMode: celloViewMode,
                 onEditInputs: () => setCelloViewMode("inputs"),
                 isRunning,
+              })}
+              {...(currentStep.id === "ml" && {
+                mlParams,
+                onMlParamChange: handleMlParamChange,
+                onRunML: handleRunML,
+                mlRunState,
               })}
             />
           </section>
