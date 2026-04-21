@@ -365,18 +365,21 @@ export default function App() {
         <div className="content-grid">
           <section className="stage-view">
             <ActiveStage
-              runParams={runParams}
-              runParameterFields={runParameterFields}
-              onRunParamChange={handleRunParamChange}
-              celloInputs={celloInputs}
-              importedNames={importedNames}
-              onCelloInputChange={handleCelloInputChange}
-              onImportedNameChange={handleImportedNameChange}
-              runState={runState}
-              runResult={runState.result}
-              viewMode={celloViewMode}
-              onEditInputs={() => setCelloViewMode("inputs")}
-              isRunning={isRunning}
+              {...(currentStep.id === "cello" && {
+                runParams,
+                runParameterFields,
+                onRunParamChange: handleRunParamChange,
+                celloInputs,
+                importedNames,
+                onCelloInputChange: handleCelloInputChange,
+                onImportedNameChange: handleImportedNameChange,
+                runState,
+                runResult: runState.result,
+                viewMode: celloViewMode,
+                onEditInputs: () => setCelloViewMode("inputs"),
+                isRunning,
+              })}
+              />
             />
           </section>
 
