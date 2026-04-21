@@ -382,6 +382,7 @@ export default function App() {
             />
           </section>
 
+        {currentStep.id === "cello" && (  
           <aside className="preview-rail">
             <section className="card preview-card">
               <span className="sidebar-label">Run parameters</span>
@@ -428,6 +429,7 @@ export default function App() {
               </div>
             </section>
           </aside>
+      )}
         </div>
       </main>
     </div>
