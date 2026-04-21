@@ -62,7 +62,6 @@ export function MlStage({ mlParams, onMlParamChange, onRunML, mlRunState }) {
           ))}
         </div>
       </section>
-    </div>
     {/* RIGHT SIDE (THIS IS WHERE YOUR BUTTON GOES) */}
     <aside className="card preview-card">
       <h3>ML Configuration</h3>
