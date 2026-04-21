@@ -33,6 +33,7 @@ const trainingSetup = [
 ];
 
 export function MlStage({ mlParams, onMlParamChange, onRunML, mlRunState }) {
+  if (!mlParams || !mlRunState) return null;
   return (
     <div className="stage-grid">
       <section className="card">
