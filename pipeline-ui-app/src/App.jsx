@@ -526,42 +526,70 @@ export default function App() {
               {currentStep.id === "ml" && (
               <>
                 <span className="sidebar-label">ML Configuration</span>
-                <label className="config-item">
-                <span>Train/Test Split: {mlParams.trainSplit}%</span>
+                
+                {/* Train / Test Split */}
+                <div className="ml-param-block">
+                  <div className="ml-param-header">
+                  <span className="ml-param-label">Train/Test Split</span>
+                  </div>
                 <input
                   type="range"
-                  min="50"
+                  min="10"
                   max="90"
+                  className="ml-slider"
                   value={mlParams.trainSplit}
                   onChange={(e) =>
                     handleMlParamChange("trainSplit", Number(e.target.value))
                   }
                 />
-              </label>
+                <span className="ml-param-value">
+                  {mlParams.trainSplit}%
+                </span>
+                </div>
+                  
 
-              <label className="config-item">
-                <span>Top N Features</span>
+                {/* Top N Features */}
+                <div className="ml-param-block">
+                  <div className="ml-param-header">
+                  <span className="ml-param-label">Top N Features</span>
+                  </div>
+                  
                 <input
                   type="number"
+                  className="config-control"
                   value={mlParams.topNFeatures}
                   onChange={(e) =>
                     handleMlParamChange("topNFeatures", Number(e.target.value))
                   }
                 />
-              </label>
+                <span className="ml-param-value">
+                  {mlParams.topNFeatures}
+                </span>
+                </div>
 
-              <label className="config-item">
-                <span>Threshold</span>
+
+                {/* Threshold */}
+                <div className="ml-param-block">
+                  <div className="ml-param-header">
+                  <span className="ml-param-label">Threshold</span>
+                  </div>
+                  
                 <input
                   type="number"
                   step="0.01"
+                  className="config-control"
                   value={mlParams.threshold}
                   onChange={(e) =>
                     handleMlParamChange("threshold", Number(e.target.value))
                   }
                 />
-              </label>
-      
+                <span className="ml-param-value">
+                  {mlParams.threshold}
+                </span>
+              </div>
+
+            {/* Run Button + Error */}
+            <div className="run-control-stack">
               <button className="primary-button wide" onClick={handleRunML}>
                 {mlRunState?.phase === "running"
                   ? "Running ML..."
@@ -571,6 +599,7 @@ export default function App() {
               {mlRunState?.error && (
                 <p className="error-text compact">{mlRunState.error}</p>
               )}
+            </div>
             </>
           )} 
             </section>
