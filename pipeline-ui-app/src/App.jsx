@@ -379,7 +379,6 @@ export default function App() {
                 onEditInputs: () => setCelloViewMode("inputs"),
                 isRunning,
               })}
-              />
             />
           </section>
 
