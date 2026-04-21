@@ -188,6 +188,11 @@ export default function App() {
     result: null,
     error: "",
   });
+  const [mlRunState, setMlRunState] = useState({
+  phase: "idle",
+  result: null,
+  error: "",
+  });
   const [mlParams, setMlParams] = useState({
     trainSplit: 70,
     topNFeatures: 10,
