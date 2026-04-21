@@ -473,9 +473,11 @@ export default function App() {
             />
           </section>
 
-        {currentStep.id === "cello" && (  
+
           <aside className="preview-rail">
             <section className="card preview-card">
+              {currentStep.id === "cello" && (  
+              <>
               <span className="sidebar-label">Run parameters</span>
               <div className="config-grid compact-config-grid">
                 {runParameterFields.map((field) => (
@@ -518,9 +520,61 @@ export default function App() {
                   </p>
                 ) : null}
               </div>
+              </>
+              )}
+
+              {currentStep.id === "ml" && (
+              <>
+                <span className="sidebar-label">ML Configuration</span>
+                <label className="config-item">
+                <span>Train/Test Split: {mlParams.trainSplit}%</span>
+                <input
+                  type="range"
+                  min="50"
+                  max="90"
+                  value={mlParams.trainSplit}
+                  onChange={(e) =>
+                    onMlParamChange("trainSplit", Number(e.target.value))
+                  }
+                />
+              </label>
+
+              <label className="config-item">
+                <span>Top N Features</span>
+                <input
+                  type="number"
+                  value={mlParams.topNFeatures}
+                  onChange={(e) =>
+                    onMlParamChange("topNFeatures", Number(e.target.value))
+                  }
+                />
+              </label>
+
+              <label className="config-item">
+                <span>Threshold</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={mlParams.threshold}
+                  onChange={(e) =>
+                    onMlParamChange("threshold", Number(e.target.value))
+                  }
+                />
+              </label>
+      
+              <button className="primary-button wide" onClick={onRunML}>
+                {mlRunState?.phase === "running"
+                  ? "Running ML..."
+                  : "Run ML"}
+              </button>
+
+              {mlRunState?.error && (
+                <p className="error-text compact">{mlRunState.error}</p>
+              )}
+            </>
+          )} 
             </section>
           </aside>
-      )}
         </div>
       </main>
     </div>
