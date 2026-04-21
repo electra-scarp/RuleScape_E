@@ -340,6 +340,7 @@ code,
 .mini-card-value {
   font-size: 18px;
   line-height: 1;
+  overflow-wrap: anywhere;
 }
 
 .workspace {
@@ -416,6 +417,10 @@ code,
   grid-template-columns: minmax(0, 1fr) 312px;
   gap: 18px;
   min-width: 0;
+}
+
+.content-grid.single-column {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .stage-view,
@@ -505,6 +510,36 @@ code,
   gap: 16px;
 }
 
+.source-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface-panel);
+}
+
+.source-toggle-button {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.source-toggle-button:hover {
+  color: var(--accent);
+  background: rgba(134, 242, 255, 0.08);
+}
+
+.source-toggle-button.active {
+  background: rgba(134, 242, 255, 0.12);
+  color: var(--accent);
+}
+
 .stage-grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
@@ -518,6 +553,10 @@ code,
 }
 
 .stage-grid > .card:first-child {
+  grid-column: 1 / -1;
+}
+
+.stage-grid > .card.full-span {
   grid-column: 1 / -1;
 }
 
@@ -542,6 +581,10 @@ code,
 .bar-list,
 .config-grid {
   margin-top: 18px;
+}
+
+.import-section-head {
+  margin-top: 24px;
 }
 
 .accordion-list {
@@ -688,6 +731,25 @@ code,
   position: relative;
   min-height: 280px;
   overflow: hidden;
+}
+
+.code-box {
+  width: 100%;
+  min-height: 220px;
+  resize: vertical;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #111214;
+  color: var(--ink);
+  font: 13px/1.6 "IBM Plex Mono", monospace;
+}
+
+.code-box:focus,
+.code-box:focus-visible {
+  outline: none;
+  border-color: rgba(134, 242, 255, 0.28);
+  box-shadow: 0 0 0 3px rgba(134, 242, 255, 0.1);
 }
 
 .editor-shell.focused {
@@ -907,8 +969,16 @@ select.config-control {
 
 .results-table {
   width: 100%;
-  margin-top: 18px;
+  min-width: 720px;
   border-collapse: collapse;
+}
+
+.table-shell {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .results-table th,
@@ -916,6 +986,7 @@ select.config-control {
   padding: 14px 12px;
   border-bottom: 1px solid var(--line);
   text-align: left;
+  overflow-wrap: anywhere;
 }
 
 .results-table th {
@@ -952,6 +1023,23 @@ select.config-control {
   margin-top: 18px;
 }
 
+.action-button-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.status-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.status-meta-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .status-row {
   display: flex;
   align-items: center;
@@ -959,11 +1047,14 @@ select.config-control {
   gap: 12px;
 }
 
+.status-chip.checking,
 .status-chip.idle {
   background: rgba(255, 255, 255, 0.06);
   color: var(--muted);
 }
 
+.status-chip.ready,
+.status-chip.online,
 .status-chip.initializing,
 .status-chip.running {
   background: rgba(134, 242, 255, 0.12);
@@ -975,6 +1066,7 @@ select.config-control {
   color: var(--success);
 }
 
+.status-chip.offline,
 .status-chip.error {
   background: rgba(255, 123, 123, 0.14);
   color: #ff9b9b;
@@ -1112,6 +1204,256 @@ select.config-control {
   word-break: break-all;
 }
 
+.preview-meta {
+  margin: 14px 0 10px;
+}
+
+.preview-box {
+  min-height: 180px;
+}
+
+.knox-visual-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(320px, 0.9fr);
+  gap: 18px;
+  margin-top: 18px;
+}
+
+.knox-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface-panel);
+  min-width: 0;
+}
+
+.knox-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.design-track-shell {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 4px;
+}
+
+.design-track {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-width: max-content;
+}
+
+.design-module-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.design-module {
+  min-width: 160px;
+  max-width: 180px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid transparent;
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.design-module-step {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.design-module-part {
+  font-size: 15px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.design-module-role {
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.design-module-link {
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.detail-panel {
+  justify-content: space-between;
+}
+
+.detail-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.detail-chip-list,
+.detail-part-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.detail-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.detail-chip.pass {
+  background: rgba(141, 245, 214, 0.14);
+  color: var(--success);
+}
+
+.detail-chip.fail {
+  background: rgba(255, 123, 123, 0.14);
+  color: #ff9b9b;
+}
+
+.detail-chip.neutral {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--muted);
+}
+
+.candidate-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.candidate-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface-panel);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.candidate-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(134, 242, 255, 0.18);
+  background: var(--surface-elevated);
+}
+
+.candidate-card.selected {
+  border-color: rgba(134, 242, 255, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(134, 242, 255, 0.06);
+}
+
+.candidate-card-top {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.candidate-card-top strong {
+  overflow-wrap: anywhere;
+}
+
+.candidate-rank {
+  color: var(--accent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.candidate-card-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.candidate-bar-track {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.candidate-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--accent-deep));
+}
+
+.rule-matrix-table td {
+  text-align: center;
+}
+
+.matrix-row-selected {
+  background: rgba(134, 242, 255, 0.05);
+}
+
+.rule-matrix-table tbody tr {
+  cursor: pointer;
+}
+
+.rule-matrix-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.matrix-design-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  min-width: 0;
+}
+
+.matrix-design-cell strong,
+.matrix-design-cell span {
+  overflow-wrap: anywhere;
+}
+
+.matrix-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+
+.matrix-status.pass {
+  background: rgba(141, 245, 214, 0.14);
+  color: var(--success);
+}
+
+.matrix-status.fail {
+  background: rgba(255, 123, 123, 0.14);
+  color: #ff9b9b;
+}
+
 .empty-state {
   margin-top: 18px;
   line-height: 1.6;
@@ -1131,6 +1473,20 @@ select.config-control {
   .hero-topline {
     flex-wrap: wrap;
     align-items: flex-start;
+  }
+
+  .card-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .source-toggle {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .source-toggle-button {
+    flex: 1;
   }
 
   .sidebar,
@@ -1160,6 +1516,9 @@ select.config-control {
     padding: 14px;
   }
 
+  .knox-visual-grid,
+  .knox-stat-grid,
+  .status-meta-grid,
   .mini-grid,
   .config-grid,
   .stage-grid {
