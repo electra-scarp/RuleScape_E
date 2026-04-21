@@ -48,6 +48,18 @@ cd RuleScape/pipeline-ui-app
 ./scripts/install_frontend.sh
 ```
 
+Before running the front end, ensure `graphviz` and `yosys` are installed on your system for compatibility with Cello
+
+### Linux/WSL
+```bash
+sudo apt install graphviz yosys
+```
+
+### Mac
+```bash
+brew install graphviz yosys
+```
+
 To launch the frontend, run:
 ```bash
 npm run dev
