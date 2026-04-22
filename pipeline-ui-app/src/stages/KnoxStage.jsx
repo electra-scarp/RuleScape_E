@@ -31,13 +31,6 @@ export const knoxRuleSpecs = [
     accept: ".txt,.goldbar,.gb,.csv",
     placeholder: "Write or import the Goldbar rule specification",
   },
-  {
-    id: "categories",
-    title: "categories.json",
-    note: "category mapping JSON for the Goldbar rules",
-    accept: ".json",
-    placeholder: "Write or import the categories JSON",
-  },
 ];
 
 const generatedFileNotes = {
@@ -95,14 +88,12 @@ export function createEmptyKnoxBundleNames() {
 export function createEmptyKnoxRuleInputs() {
   return {
     goldbar: "",
-    categories: "",
   };
 }
 
 export function createEmptyKnoxRuleNames() {
   return {
     goldbar: "",
-    categories: "",
   };
 }
 
@@ -664,7 +655,7 @@ export function BridgeStage({
       <section className="card full-span">
         <h3>Rule inputs</h3>
         <p className="muted">
-          Goldbar and categories stay separate from the Knox bundle. Use them when you want Knox
+          The Goldbar rule stays separate from the Knox bundle. Use it when you want Knox
           to evaluate the imported designs against a rule set.
         </p>
 
