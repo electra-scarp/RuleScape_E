@@ -389,12 +389,13 @@ export default function App() {
 
   // When the user navigates to the Knox stage without having run Cello,
   // automatically switch the bundle source to "uploaded" so they can proceed
-  // with only the files they have uploaded.
+  // with only the files they have uploaded. Also corrects immediately if
+  // knoxBundleSource is ever set back to "generated" without a Cello result.
   useEffect(() => {
     if (currentStep.id === "bridge" && !generatedKnoxBundleReady) {
       setKnoxBundleSource("uploaded");
     }
-  }, [activeIndex]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activeIndex, knoxBundleSource]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let active = true;
