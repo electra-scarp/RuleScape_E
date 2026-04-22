@@ -370,9 +370,7 @@ export default function App() {
     knoxBundleSource === "generated" ? generatedKnoxBundleReady : uploadedKnoxBundleReady;
   const knoxEvaluationScoresReady =
     knoxBundleSource === "generated" ? generatedKnoxBundleReady : uploadedKnoxWeightReady;
-  const hasKnoxRules =
-    Boolean(String(knoxRuleInputs.goldbar || "").trim()) &&
-    Boolean(String(knoxRuleInputs.categories || "").trim());
+  const hasKnoxRules = Boolean(String(knoxRuleInputs.goldbar || "").trim());
   const importedKnoxGroupId = knoxRunState.result?.import?.designGroupId || "";
   const importedKnoxOutputPrefix = knoxRunState.result?.import?.outputSpacePrefix || "";
   const hasImportedKnoxBundle = Boolean(importedKnoxGroupId);
@@ -682,7 +680,7 @@ export default function App() {
       setKnoxRunState({
         phase: "error",
         result: knoxRunState.result,
-        error: "Goldbar and categories are required before evaluating rules.",
+        error: "A Goldbar rule is required before evaluating rules.",
         action,
       });
       return;
@@ -714,7 +712,6 @@ export default function App() {
       evaluationName: knoxRunParams.evaluationName,
       labelingMethod: knoxRunParams.labelingMethod,
       goldbar: action === "evaluate" ? knoxRuleInputs.goldbar : "",
-      categories: action === "evaluate" ? knoxRuleInputs.categories : "",
     };
 
     const runningTimer = window.setTimeout(() => {
@@ -777,7 +774,7 @@ export default function App() {
       : knoxBundleSource === "uploaded" && !uploadedKnoxWeightReady
         ? "Uploaded bundle evaluation requires weight.csv so Knox has real design scores."
       : !hasKnoxRules
-        ? "Add both Goldbar and categories to enable Evaluate Rules."
+        ? "Add a Goldbar rule to enable Evaluate Rules."
         : "Evaluate Rules will run Knox rule evaluation on the imported design group.";
 
   const activeStageProps =
