@@ -26,8 +26,7 @@ const CELLO_HEALTH_URL =
 const KNOX_PIPELINE_API_URL =
   import.meta.env.VITE_KNOX_API_URL || "http://127.0.0.1:8080/api/pipeline/knox/run";
 const KNOX_HEALTH_URL =
-  import.meta.env.VITE_KNOX_HEALTH_URL ||
-  KNOX_PIPELINE_API_URL.replace("/api/pipeline/knox/run", "/api/pipeline/knox/health");
+  import.meta.env.VITE_KNOX_HEALTH_URL || "http://127.0.0.1:8080/designSpace/list";
 
 const steps = [
   {
@@ -434,18 +433,10 @@ export default function App() {
     const checkKnoxService = async () => {
       try {
         const response = await fetch(KNOX_HEALTH_URL);
-        if (!response.ok) {
-          throw new Error("Health check failed.");
-        }
-        const payload = await response.json();
-        if (!active) {
-          return;
-        }
-        setKnoxServiceStatus(payload.status === "ok" ? "online" : "offline");
+        if (!active) return;
+        setKnoxServiceStatus(response.ok ? "online" : "offline");
       } catch {
-        if (!active) {
-          return;
-        }
+        if (!active) return;
         setKnoxServiceStatus("offline");
       }
     };
