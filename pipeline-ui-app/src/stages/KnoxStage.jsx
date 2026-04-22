@@ -503,6 +503,8 @@ export function BridgeStage({
               type="button"
               className={`source-toggle-button${knoxBundleSource === "generated" ? " active" : ""}`}
               onClick={() => onKnoxBundleSourceChange("generated")}
+              disabled={!runResult}
+              title={!runResult ? "Run Cello first to use the generated bundle" : undefined}
             >
               Generated
             </button>
