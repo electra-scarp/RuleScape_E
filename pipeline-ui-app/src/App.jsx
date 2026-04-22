@@ -24,7 +24,7 @@ const CELLO_HEALTH_URL =
   import.meta.env.VITE_PIPELINE_HEALTH_URL ||
   CELLO_PIPELINE_API_URL.replace("/api/pipeline/cello-knox/run", "/api/pipeline/health");
 const KNOX_PIPELINE_API_URL =
-  import.meta.env.VITE_KNOX_API_URL || "http://127.0.0.1:8051/api/pipeline/knox/run";
+  import.meta.env.VITE_KNOX_API_URL || "http://127.0.0.1:8080/api/pipeline/knox/run";
 const KNOX_HEALTH_URL =
   import.meta.env.VITE_KNOX_HEALTH_URL ||
   KNOX_PIPELINE_API_URL.replace("/api/pipeline/knox/run", "/api/pipeline/knox/health");
