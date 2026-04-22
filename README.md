@@ -21,7 +21,7 @@ RuleScape's Rule-Ranking system is what sets it apart from other design workflow
 ## <strong>Seamless UI</strong>
 
 <div align="center">
-  <img src="assets/Pipeline.png" alt="pipeline" width="600">
+  <img src="assets/RuleScapeGUI.png" alt="pipeline" width="600">
 </div>
 
 RuleScape aims to streamline circuit design by integrating Knox and Cello and centralizing commands and controls for the design process in one place. 
@@ -46,6 +46,18 @@ This repo depends on Git submodules for the main application code. Clone it with
 git clone --recurse-submodules https://github.com/julsjac/RuleScape.git
 cd RuleScape/pipeline-ui-app
 ./scripts/install_frontend.sh
+```
+
+Before running the front end, ensure `graphviz` and `yosys` are installed on your system for compatibility with Cello
+
+### Linux/WSL
+```bash
+sudo apt install graphviz yosys
+```
+
+### Mac
+```bash
+brew install graphviz yosys
 ```
 
 To launch the frontend, run:
