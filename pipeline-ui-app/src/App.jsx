@@ -707,63 +707,84 @@ export default function App() {
 
       if (knoxBundleSource === "uploaded") {
         // ── Uploaded mode: call Knox REST API directly ──────────────────
-        const knoxBase = KNOX_PIPELINE_API_URL.replace("/api/pipeline/knox/run", "");
+        const knoxBase = "http://127.0.0.1:8080";
 
         if (action === "import") {
           // Import designs.csv + part_library.csv + weight.csv directly into Knox
           // using the user-specified design group ID.
-          const importRes = await fetch(`${knoxBase}/api/csv/import`, {
+          // Knox /import/csv expects multipart form upload with inputCSVFiles[].
+          const importForm = new FormData();
+          importForm.append(
+            "inputCSVFiles[]",
+            new Blob([knoxBundleInputs.designs], { type: "text/csv" }),
+            "designs.csv"
+          );
+          importForm.append(
+            "inputCSVFiles[]",
+            new Blob([knoxBundleInputs.partLibrary], { type: "text/csv" }),
+            "part_library.csv"
+          );
+          if (knoxBundleInputs.weight) {
+            importForm.append(
+              "inputCSVFiles[]",
+              new Blob([knoxBundleInputs.weight], { type: "text/csv" }),
+              "weight.csv"
+            );
+          }
+          importForm.append("outputSpacePrefix", knoxRunParams.outputSpacePrefix);
+          importForm.append("groupID", knoxRunParams.designGroupId);
+
+          const importRes = await fetch(`${knoxBase}/import/csv`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              designGroupId: knoxRunParams.designGroupId,
-              outputSpacePrefix: knoxRunParams.outputSpacePrefix,
-              designs: knoxBundleInputs.designs,
-              partLibrary: knoxBundleInputs.partLibrary,
-              weight: knoxBundleInputs.weight || "",
-              labelingMethod: knoxRunParams.labelingMethod,
-            }),
+            body: importForm,
           });
-          const importData = await importRes.json();
-          if (!importRes.ok) throw new Error(importData.error || "Knox CSV import failed.");
+          if (!importRes.ok) {
+            const errText = await importRes.text().catch(() => "");
+            throw new Error(errText || "Knox CSV import failed.");
+          }
           payload = {
             import: {
               designGroupId: knoxRunParams.designGroupId,
               outputSpacePrefix: knoxRunParams.outputSpacePrefix,
-              designCount: importData.designCount ?? importData.count ?? null,
             },
           };
         } else {
           // action === "evaluate"
-          // Step 1: Create a design space and rules group from the Goldbar rules CSV,
-          //         configured to "all" designs in the group.
-          const rulesRes = await fetch(`${knoxBase}/api/rules/create`, {
+          // Step 1: Import the GOLDBAR rule expression into Knox as a rule design space.
+          //         Knox /goldbar/import expects form params: goldbar, categories (JSON), outputSpaceID, groupID.
+          const goldbarForm = new FormData();
+          goldbarForm.append("goldbar", knoxRuleInputs.goldbar);
+          goldbarForm.append("categories", "{}");
+          goldbarForm.append("outputSpaceID", knoxRunParams.ruleSpaceId);
+          goldbarForm.append("groupID", knoxRunParams.rulesGroupId);
+
+          const rulesRes = await fetch(`${knoxBase}/goldbar/import`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              ruleSpaceId: knoxRunParams.ruleSpaceId,
-              rulesGroupId: knoxRunParams.rulesGroupId,
-              goldbar: knoxRuleInputs.goldbar,
-              configuration: "all",
-              designGroupId: knoxRunParams.designGroupId,
-            }),
+            body: goldbarForm,
           });
-          const rulesData = await rulesRes.json();
-          if (!rulesRes.ok) throw new Error(rulesData.error || "Knox rules creation failed.");
+          if (!rulesRes.ok) {
+            const errText = await rulesRes.text().catch(() => "");
+            throw new Error(errText || "Knox GOLDBAR import failed.");
+          }
 
           // Step 2: Run rule evaluation against the imported design group.
-          const evalRes = await fetch(`${knoxBase}/api/rules/evaluate`, {
+          //         Knox /rule/evaluate expects form params.
+          const evalParams = new URLSearchParams();
+          evalParams.append("evaluationName", knoxRunParams.evaluationName);
+          evalParams.append("designGroupID", knoxRunParams.designGroupId);
+          evalParams.append("rulesGroupID", knoxRunParams.rulesGroupId);
+          evalParams.append("labelingMethod", knoxRunParams.labelingMethod || "median");
+
+          const evalRes = await fetch(`${knoxBase}/rule/evaluate`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              designGroupId: knoxRunParams.designGroupId,
-              rulesGroupId: knoxRunParams.rulesGroupId,
-              evaluationName: knoxRunParams.evaluationName,
-              labelingMethod: knoxRunParams.labelingMethod,
-            }),
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: evalParams,
           });
-          const evalData = await evalRes.json();
-          if (!evalRes.ok) throw new Error(evalData.error || "Knox rule evaluation failed.");
+          if (!evalRes.ok) {
+            const errText = await evalRes.text().catch(() => "");
+            throw new Error(errText || "Knox rule evaluation failed.");
+          }
+          const evalData = await evalRes.json().catch(() => ({}));
 
           payload = {
             import: knoxRunState.result?.import ?? {
