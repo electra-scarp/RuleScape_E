@@ -741,11 +741,48 @@ export default function App() {
           };
         } else {
           // action === "evaluate"
+          // Build Knox categories from the uploaded part_library.csv.
+          // part_library.csv format: part_id, role (one part per row after header).
+          // Knox categories: { roleName: { roleName: [ids...] }, partID: { roleName: [partID] }, ... }
+          const buildKnoxCategories = (partLibraryCsv) => {
+            const roleToIds = {};
+            const lines = partLibraryCsv.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            // Skip header row
+            for (let i = 1; i < lines.length; i++) {
+              const cols = lines[i].split(",").map(c => c.trim());
+              const partId = cols[0];
+              const role = cols[1];
+              if (!partId || !role) continue;
+              if (!roleToIds[role]) roleToIds[role] = [];
+              roleToIds[role].push(partId);
+            }
+            const cats = {};
+            // any_part_concrete: all roles with all ids
+            const anyPartConcrete = {};
+            for (const [role, ids] of Object.entries(roleToIds)) {
+              anyPartConcrete[role] = ids;
+            }
+            cats["any_part_concrete"] = anyPartConcrete;
+            // per role: { role: [ids] }
+            for (const [role, ids] of Object.entries(roleToIds)) {
+              cats[role] = { [role]: ids };
+            }
+            // per part: { partId: { role: [partId] } }
+            for (const [role, ids] of Object.entries(roleToIds)) {
+              for (const id of ids) {
+                cats[id] = { [role]: [id] };
+              }
+            }
+            return cats;
+          };
+
+          const knoxCategories = buildKnoxCategories(knoxBundleInputs.partLibrary || "");
+
           // Step 1: Import the GOLDBAR rule expression into Knox as a rule design space.
           //         Knox /goldbar/import expects form params: goldbar, categories (JSON), outputSpaceID, groupID.
           const goldbarForm = new FormData();
           goldbarForm.append("goldbar", knoxRuleInputs.goldbar);
-          goldbarForm.append("categories", "{}");
+          goldbarForm.append("categories", JSON.stringify(knoxCategories));
           goldbarForm.append("outputSpaceID", knoxRunParams.ruleSpaceId);
           goldbarForm.append("groupID", knoxRunParams.rulesGroupId);
 
