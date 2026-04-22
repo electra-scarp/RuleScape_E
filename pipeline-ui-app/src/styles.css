@@ -510,6 +510,14 @@ code,
   gap: 16px;
 }
 
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
 .source-toggle {
   display: inline-flex;
   align-items: center;
@@ -1210,6 +1218,10 @@ select.config-control {
 
 .preview-box {
   min-height: 180px;
+}
+
+.raw-json-box {
+  min-height: 320px;
 }
 
 .knox-visual-grid {

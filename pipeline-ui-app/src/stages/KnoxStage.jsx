@@ -428,6 +428,7 @@ export function BridgeStage({
   const [openBundleName, setOpenBundleName] = useState(null);
   const [openRuleName, setOpenRuleName] = useState(null);
   const [selectedDesignId, setSelectedDesignId] = useState(null);
+  const [latestOutputTab, setLatestOutputTab] = useState("summary");
   const bundleFileInputs = useRef({});
   const ruleFileInputs = useRef({});
 
@@ -499,6 +500,17 @@ export function BridgeStage({
     [evaluation, sourceCandidates]
   );
   const ruleSummary = useMemo(() => buildRuleMetricSummary(evaluation), [evaluation]);
+  const rawKnoxPayload = useMemo(
+    () => evaluation?.raw || knoxRunResult || null,
+    [evaluation, knoxRunResult]
+  );
+  const rawKnoxOutputText = useMemo(
+    () => (rawKnoxPayload ? JSON.stringify(rawKnoxPayload, null, 2) : ""),
+    [rawKnoxPayload]
+  );
+  const rawKnoxOutputLabel = evaluation?.executed
+    ? "Raw Knox /rule/evaluate response"
+    : "Current Knox pipeline payload";
   const availableDesignIds = useMemo(
     () =>
       evaluation?.executed
@@ -512,6 +524,10 @@ export function BridgeStage({
       current && availableDesignIds.includes(current) ? current : availableDesignIds[0] || null
     );
   }, [availableDesignIds]);
+
+  useEffect(() => {
+    setLatestOutputTab("summary");
+  }, [knoxRunResult?.requestId, knoxRunResult?.action]);
 
   const selectedCandidate =
     candidateByDesignId[selectedDesignId] ||
@@ -849,34 +865,61 @@ export function BridgeStage({
                     : "Knox imported the bundle, but no Knox rule evaluation output is available yet."}
               </p>
             </div>
-            <span className="chip ready">{evaluation?.executed ? "evaluation ready" : "import ready"}</span>
+            <div className="card-header-actions">
+              <div className="source-toggle" role="tablist" aria-label="Knox output view">
+                <button
+                  type="button"
+                  className={`source-toggle-button${latestOutputTab === "summary" ? " active" : ""}`}
+                  onClick={() => setLatestOutputTab("summary")}
+                >
+                  Summary
+                </button>
+                <button
+                  type="button"
+                  className={`source-toggle-button${latestOutputTab === "raw" ? " active" : ""}`}
+                  onClick={() => setLatestOutputTab("raw")}
+                >
+                  Raw JSON
+                </button>
+              </div>
+              <span className="chip ready">{evaluation?.executed ? "evaluation ready" : "import ready"}</span>
+            </div>
           </div>
 
-          <div className="mini-grid result-mini-grid">
-            <div className="mini-card">
-              <span className="mini-card-label">Design group</span>
-              <strong className="mini-card-value">{knoxRunResult.import.designGroupId}</strong>
-            </div>
-            <div className="mini-card">
-              <span className="mini-card-label">Imported designs</span>
-              <strong className="mini-card-value">{knoxRunResult.import.designCount}</strong>
-            </div>
-            <div className="mini-card">
-              <span className="mini-card-label">Evaluated rules</span>
-              <strong className="mini-card-value">{ruleSummary.evaluatedRules}</strong>
-            </div>
-            <div className="mini-card">
-              <span className="mini-card-label">Top impact</span>
-              <strong className="mini-card-value">{ruleSummary.topImpact}</strong>
-            </div>
-          </div>
+          {latestOutputTab === "summary" ? (
+            <>
+              <div className="mini-grid result-mini-grid">
+                <div className="mini-card">
+                  <span className="mini-card-label">Design group</span>
+                  <strong className="mini-card-value">{knoxRunResult.import.designGroupId}</strong>
+                </div>
+                <div className="mini-card">
+                  <span className="mini-card-label">Imported designs</span>
+                  <strong className="mini-card-value">{knoxRunResult.import.designCount}</strong>
+                </div>
+                <div className="mini-card">
+                  <span className="mini-card-label">Evaluated rules</span>
+                  <strong className="mini-card-value">{ruleSummary.evaluatedRules}</strong>
+                </div>
+                <div className="mini-card">
+                  <span className="mini-card-label">Top impact</span>
+                  <strong className="mini-card-value">{ruleSummary.topImpact}</strong>
+                </div>
+              </div>
 
-          {evaluation?.executed ? (
-            <p className="muted compact">
-              Evaluation name: <span className="mono">{evaluation.evaluationName}</span>
-            </p>
+              {evaluation?.executed ? (
+                <p className="muted compact">
+                  Evaluation name: <span className="mono">{evaluation.evaluationName}</span>
+                </p>
+              ) : (
+                <p className="muted compact">{evaluation?.reason}</p>
+              )}
+            </>
           ) : (
-            <p className="muted compact">{evaluation?.reason}</p>
+            <>
+              <p className="muted preview-meta">{rawKnoxOutputLabel}</p>
+              <textarea className="code-box preview-box raw-json-box" value={rawKnoxOutputText} readOnly />
+            </>
           )}
         </section>
       ) : null}
