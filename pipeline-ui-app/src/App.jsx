@@ -26,7 +26,7 @@ const CELLO_HEALTH_URL =
 const KNOX_PIPELINE_API_URL =
   import.meta.env.VITE_KNOX_API_URL || "http://127.0.0.1:8080/api/pipeline/knox/run";
 const KNOX_HEALTH_URL =
-  import.meta.env.VITE_KNOX_HEALTH_URL || "http://127.0.0.1:8080/designSpace/list";
+  import.meta.env.VITE_KNOX_HEALTH_URL || "/knox-api/designSpace/list";
 
 const steps = [
   {
@@ -698,7 +698,7 @@ export default function App() {
 
       if (knoxBundleSource === "uploaded") {
         // ── Uploaded mode: call Knox REST API directly ──────────────────
-        const knoxBase = "http://127.0.0.1:8080";
+        const knoxBase = "/knox-api";
 
         if (action === "import") {
           // Import designs.csv + part_library.csv + weight.csv directly into Knox
