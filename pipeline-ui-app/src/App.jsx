@@ -601,6 +601,9 @@ export default function App() {
       top_n_features: resolvedParams.topNFeatures,
       threshold: resolvedParams.threshold,
       models: resolvedParams.models,
+      design_group_id: knoxRunParams.designGroupId,
+      rules_group_id: knoxRunParams.rulesGroupId,
+      evaluation_name: knoxRunParams.evaluationName,
     };
 
     const runningTimer = window.setTimeout(() => {
@@ -676,16 +679,6 @@ export default function App() {
       return;
     }
 
-    if (action === "evaluate" && !importedKnoxGroupMatchesCurrent) {
-      setKnoxRunState({
-        phase: "error",
-        result: knoxRunState.result,
-        error: "The Knox import settings changed. Re-import the bundle before evaluating rules.",
-        action,
-      });
-      return;
-    }
-
     if (action === "evaluate" && !hasKnoxRules) {
       setKnoxRunState({
         phase: "error",
@@ -703,27 +696,6 @@ export default function App() {
       action,
     });
 
-    const requestPayload = {
-      action,
-      bundleSource: knoxBundleSource,
-      celloRequestId: celloRunState.result?.requestId || "",
-      uploadedBundle:
-        knoxBundleSource === "uploaded"
-          ? {
-              designs: knoxBundleInputs.designs,
-              partLibrary: knoxBundleInputs.partLibrary,
-              weight: knoxBundleInputs.weight,
-            }
-          : undefined,
-      outputSpacePrefix: knoxRunParams.outputSpacePrefix,
-      designGroupId: knoxRunParams.designGroupId,
-      ruleSpaceId: knoxRunParams.ruleSpaceId,
-      rulesGroupId: knoxRunParams.rulesGroupId,
-      evaluationName: knoxRunParams.evaluationName,
-      labelingMethod: knoxRunParams.labelingMethod,
-      goldbar: action === "evaluate" ? knoxRuleInputs.goldbar : "",
-    };
-
     const runningTimer = window.setTimeout(() => {
       setKnoxRunState((current) =>
         current.phase === "initializing" ? { ...current, phase: "running", action } : current
@@ -731,20 +703,104 @@ export default function App() {
     }, 250);
 
     try {
-      const response = await fetch(KNOX_PIPELINE_API_URL, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestPayload),
-      });
-      const payload = await response.json();
-      window.clearTimeout(runningTimer);
+      let payload;
 
-      if (!response.ok) {
-        throw new Error(payload.error || "Knox run failed.");
+      if (knoxBundleSource === "uploaded") {
+        // ── Uploaded mode: call Knox REST API directly ──────────────────
+        const knoxBase = KNOX_PIPELINE_API_URL.replace("/api/pipeline/knox/run", "");
+
+        if (action === "import") {
+          // Import designs.csv + part_library.csv + weight.csv directly into Knox
+          // using the user-specified design group ID.
+          const importRes = await fetch(`${knoxBase}/api/csv/import`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              designGroupId: knoxRunParams.designGroupId,
+              outputSpacePrefix: knoxRunParams.outputSpacePrefix,
+              designs: knoxBundleInputs.designs,
+              partLibrary: knoxBundleInputs.partLibrary,
+              weight: knoxBundleInputs.weight || "",
+              labelingMethod: knoxRunParams.labelingMethod,
+            }),
+          });
+          const importData = await importRes.json();
+          if (!importRes.ok) throw new Error(importData.error || "Knox CSV import failed.");
+          payload = {
+            import: {
+              designGroupId: knoxRunParams.designGroupId,
+              outputSpacePrefix: knoxRunParams.outputSpacePrefix,
+              designCount: importData.designCount ?? importData.count ?? null,
+            },
+          };
+        } else {
+          // action === "evaluate"
+          // Step 1: Create a design space and rules group from the Goldbar rules CSV,
+          //         configured to "all" designs in the group.
+          const rulesRes = await fetch(`${knoxBase}/api/rules/create`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ruleSpaceId: knoxRunParams.ruleSpaceId,
+              rulesGroupId: knoxRunParams.rulesGroupId,
+              goldbar: knoxRuleInputs.goldbar,
+              configuration: "all",
+              designGroupId: knoxRunParams.designGroupId,
+            }),
+          });
+          const rulesData = await rulesRes.json();
+          if (!rulesRes.ok) throw new Error(rulesData.error || "Knox rules creation failed.");
+
+          // Step 2: Run rule evaluation against the imported design group.
+          const evalRes = await fetch(`${knoxBase}/api/rules/evaluate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              designGroupId: knoxRunParams.designGroupId,
+              rulesGroupId: knoxRunParams.rulesGroupId,
+              evaluationName: knoxRunParams.evaluationName,
+              labelingMethod: knoxRunParams.labelingMethod,
+            }),
+          });
+          const evalData = await evalRes.json();
+          if (!evalRes.ok) throw new Error(evalData.error || "Knox rule evaluation failed.");
+
+          payload = {
+            import: knoxRunState.result?.import ?? {
+              designGroupId: knoxRunParams.designGroupId,
+              outputSpacePrefix: knoxRunParams.outputSpacePrefix,
+            },
+            evaluation: {
+              executed: true,
+              evaluationName: knoxRunParams.evaluationName,
+              ...evalData,
+            },
+          };
+        }
+      } else {
+        // ── Generated mode: delegate to the RuleScape pipeline server ──
+        const requestPayload = {
+          action,
+          bundleSource: knoxBundleSource,
+          celloRequestId: celloRunState.result?.requestId || "",
+          outputSpacePrefix: knoxRunParams.outputSpacePrefix,
+          designGroupId: knoxRunParams.designGroupId,
+          ruleSpaceId: knoxRunParams.ruleSpaceId,
+          rulesGroupId: knoxRunParams.rulesGroupId,
+          evaluationName: knoxRunParams.evaluationName,
+          labelingMethod: knoxRunParams.labelingMethod,
+          goldbar: action === "evaluate" ? knoxRuleInputs.goldbar : "",
+        };
+        const response = await fetch(KNOX_PIPELINE_API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestPayload),
+        });
+        payload = await response.json();
+        if (!response.ok) throw new Error(payload.error || "Knox run failed.");
       }
 
+      window.clearTimeout(runningTimer);
       setKnoxServiceStatus("online");
       setKnoxRunState({
         phase: "completed",
@@ -822,6 +878,7 @@ export default function App() {
               onMlParamChange: handleMlParamChange,
               onRunML: handleRunML,
               mlRunState,
+              knoxRunParams,
             }
           : {};
 
