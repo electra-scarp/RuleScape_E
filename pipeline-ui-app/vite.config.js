@@ -11,6 +11,11 @@ export default defineConfig({
         target: "http://127.0.0.1:8051",
         changeOrigin: true,
       },
+      "/knox-api": {
+        target: "http://127.0.0.1:8080",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/knox-api/, ""),
+      },
     },
   },
 });
