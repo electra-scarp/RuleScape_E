@@ -69,20 +69,20 @@ const stageComponents = {
 
 const celloRunParameterFields = [
   {
+    id: "iterations",
+    label: "Candidates",
+    type: "number",
+    value: "25",
+    min: "1",
+    max: "10000",
+    step: "1",
+  },
+  {
     id: "topN",
     label: "Top N",
     type: "number",
     value: "5",
     min: "1",
-    step: "1",
-  },
-  {
-    id: "iterations",
-    label: "Iterations",
-    type: "number",
-    value: "25",
-    min: "1",
-    max: "25",
     step: "1",
   },
   {
@@ -306,21 +306,6 @@ export default function App() {
   const [celloInputs, setCelloInputs] = useState(createEmptyCelloInputs);
   const [importedNames, setImportedNames] = useState(createEmptyImportedNames);
   const [celloViewMode, setCelloViewMode] = useState("inputs");
-  const [runState, setRunState] = useState({
-    phase: "idle",
-    result: null,
-    error: "",
-  });
-  const [selectedKnoxContext, setSelectedKnoxContext] = useState({
-    evalName: "",
-    groupId: null,
-    ruleGroupId: null,
-  });
-  const [mlRunState, setMlRunState] = useState({
-    phase: "idle",
-    result: null,
-    error: "",
-  });
 
   const [knoxBundleSource, setKnoxBundleSource] = useState("generated");
   const [knoxBundleInputs, setKnoxBundleInputs] = useState(createEmptyKnoxBundleInputs);
@@ -576,14 +561,13 @@ export default function App() {
     }
   };
 
-  const handleRunML = async (incoming) => {
-  // --- VALIDATION ---
-  if (!mlParams.trainSplit || !mlParams.topNFeatures) {
   const handleRunML = async (nextPayload = null) => {
     const resolvedParams = {
-      trainSplit: Number(nextPayload?.trainSplit ?? mlParams.trainSplit),
-      topNFeatures: Number(nextPayload?.topNFeatures ?? mlParams.topNFeatures),
-      threshold: Number(nextPayload?.threshold ?? mlParams.threshold),
+      trainSplit: Number(nextPayload?.mlParams?.trainSplit ?? nextPayload?.trainSplit ?? mlParams.trainSplit),
+      topNFeatures: Number(
+        nextPayload?.mlParams?.topNFeatures ?? nextPayload?.topNFeatures ?? mlParams.topNFeatures
+      ),
+      threshold: Number(nextPayload?.mlParams?.threshold ?? nextPayload?.threshold ?? mlParams.threshold),
       models: Array.isArray(nextPayload?.models) ? nextPayload.models : [],
     };
 
@@ -603,41 +587,6 @@ export default function App() {
       error: "",
       action: "",
     });
-
-  // --- KNOX SELECTION VALIDATION ---
-  if (
-    !selectedKnoxContext.evalName ||
-    selectedKnoxContext.groupId == null ||
-    selectedKnoxContext.ruleGroupId == null
-  ) {
-    setMlRunState({
-      phase: "error",
-      result: null,
-      error: "No Knox selection provided.",
-    });
-    return;
-  }
-    
-  // --- INITIALIZE STATE ---
-  setMlRunState({
-    phase: "initializing",
-    result: null,
-    error: "",
-  });
-
-  // --- BUILD PAYLOAD ---
-  const payload = {
-    train_split: mlParams.trainSplit,
-    top_n_features: mlParams.topNFeatures,
-    threshold: mlParams.threshold,
-
-    // Knox Context
-    eval_name: selectedKnoxContext.evalName,
-    group_id: selectedKnoxContext.groupId,
-    rule_group_id: selectedKnoxContext.ruleGroupId,
-
-    // <-- coming from MlStage
-    models: incoming.models || [],
 
     const payload = {
       train_split: resolvedParams.trainSplit,
@@ -831,6 +780,44 @@ export default function App() {
         ? "Add both Goldbar and categories to enable Evaluate Rules."
         : "Evaluate Rules will run Knox rule evaluation on the imported design group.";
 
+  const activeStageProps =
+    currentStep.id === "cello"
+      ? {
+          celloInputs,
+          importedNames,
+          onCelloInputChange: handleCelloInputChange,
+          onImportedNameChange: handleImportedNameChange,
+          runState: celloRunState,
+          runResult: celloRunState.result,
+          viewMode: celloViewMode,
+          onEditInputs: () => setCelloViewMode("inputs"),
+          isRunning: isCelloRunning,
+        }
+      : currentStep.id === "bridge"
+        ? {
+            runResult: celloRunState.result,
+            knoxRunResult: knoxRunState.result,
+            knoxBundleSource,
+            onKnoxBundleSourceChange: setKnoxBundleSource,
+            knoxBundleInputs,
+            knoxBundleNames,
+            onKnoxBundleInputChange: handleKnoxBundleInputChange,
+            onKnoxBundleNameChange: handleKnoxBundleNameChange,
+            knoxRuleInputs,
+            knoxRuleNames,
+            onKnoxRuleInputChange: handleKnoxRuleInputChange,
+            onKnoxRuleNameChange: handleKnoxRuleNameChange,
+            knoxRunParams,
+          }
+        : currentStep.id === "ml"
+          ? {
+              mlParams,
+              onMlParamChange: handleMlParamChange,
+              onRunML: handleRunML,
+              mlRunState,
+            }
+          : {};
+
   return (
     <div className={`app-shell${sidebarCollapsed ? " sidebar-collapsed" : ""}`}>
       <aside className={`sidebar card${sidebarCollapsed ? " collapsed" : ""}`}>
@@ -918,43 +905,7 @@ export default function App() {
 
         <div className={`content-grid${runRailMode ? "" : " single-column"}`}>
           <section className="stage-view">
-            <ActiveStage
-              {...(currentStep.id === "cello" && {
-                celloInputs,
-                importedNames,
-                onCelloInputChange: handleCelloInputChange,
-                onImportedNameChange: handleImportedNameChange,
-                runState: celloRunState,
-                runResult: celloRunState.result,
-                viewMode: celloViewMode,
-                onEditInputs: () => setCelloViewMode("inputs"),
-                isRunning: isCelloRunning,
-              })}
-              {...(currentStep.id === "bridge" && {
-                runResult: celloRunState.result,
-                knoxRunResult: knoxRunState.result,
-                knoxBundleSource,
-                onKnoxBundleSourceChange: setKnoxBundleSource,
-                knoxBundleInputs,
-                knoxBundleNames,
-                onKnoxBundleInputChange: handleKnoxBundleInputChange,
-                onKnoxBundleNameChange: handleKnoxBundleNameChange,
-                knoxRuleInputs,
-                knoxRuleNames,
-                onKnoxRuleInputChange: handleKnoxRuleInputChange,
-                onKnoxRuleNameChange: handleKnoxRuleNameChange,
-                knoxRunParams,
-              })}
-              {...(currentStep.id === "ml" && {
-                mlParams,
-                onMlParamChange: handleMlParamChange,
-                onRunML: handleRunML,
-                mlRunState,
-              })}
-              runParams={celloRunParams}
-              runParameterFields={celloRunParameterFields}
-              onRunParamChange={handleCelloRunParamChange}
-            />
+            <ActiveStage {...activeStageProps} />
           </section>
 
           {runRailMode === "cello" ? (
